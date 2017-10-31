@@ -14,11 +14,15 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 
 public class ChooseCityActivity extends AppCompatActivity {
+
+    private ArrayAdapter<String> adapter;
+    private String[] cityData = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,13 +34,19 @@ public class ChooseCityActivity extends AppCompatActivity {
         SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
         Set<String> cities = sp.getStringSet("cities", null);
         if(cities != null) {
-            String[] cityData = new String[cities.size()];
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                    this, android.R.layout.simple_list_item_1, cities.toArray(cityData));
+            cityData = cities.toArray(new String[0]);
+            adapter = new ArrayAdapter<>(
+                    this, android.R.layout.simple_list_item_1, cityData);
             ListView cityListView = (ListView) findViewById(R.id.city_list);
             cityListView.setAdapter(adapter);
         }
         else{
+        //    String[] test = {"San Jose", "Santa Clara", "San Francisco", "City4", "City 5"};
+        //    String[] cityData = new String[cities.size()];
+         /*   ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                    ChooseCityActivity.this, android.R.layout.simple_list_item_1, cityData);
+            ListView cityListView = (ListView) findViewById(R.id.city_list);
+            cityListView.setAdapter(adapter); */
             Toast.makeText(ChooseCityActivity.this,
                     "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
         }
@@ -81,18 +91,34 @@ public class ChooseCityActivity extends AppCompatActivity {
                     SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
                     Set<String> cities = sp.getStringSet("cities", null);
                     if(cities != null) {
-                        String[] test = {"San Jose", "Santa Clara"};
-                        String[] cityData = new String[cities.size()];
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                                ChooseCityActivity.this, android.R.layout.simple_list_item_1, /*cities.toArray(cityData)*/ test);
-                        ListView cityListView = (ListView) findViewById(R.id.city_list);
-                        cityListView.setAdapter(adapter);
-                        cityListView.setVisibility(View.VISIBLE);
+                        if(cityData == null) {
+                            cityData = cities.toArray(new String[0]);
+                            adapter = new ArrayAdapter<>(
+                                    this, android.R.layout.simple_list_item_1, cityData);
+                            ListView cityListView = (ListView) findViewById(R.id.city_list);
+                            cityListView.setAdapter(adapter);
+                        }
+                        else {
+                            cityData = cities.toArray(new String[0]);
+                            adapter = new ArrayAdapter<>(
+                                    this, android.R.layout.simple_list_item_1, cityData);
+                            ListView cityListView = (ListView) findViewById(R.id.city_list);
+                            cityListView.setAdapter(adapter);
+                        }
+
+                        StringBuffer sb = new StringBuffer();
+                        for(int i = 0; i< cityData.length; i++) {
+                            sb.append(cityData[i]);
+                            sb.append(", ");
+                        }
+                        Toast.makeText(ChooseCityActivity.this,
+                                "cities in SharedPreferences are: " + sb.toString(), Toast.LENGTH_SHORT).show();
+                        //adapter.notifyDataSetChanged();
                     }
-                }
-                else{
-                    Toast.makeText(ChooseCityActivity.this,
-                            "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
+                    else{
+                        Toast.makeText(ChooseCityActivity.this,
+                                "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
+                    }
                 }
                 break;
             default:

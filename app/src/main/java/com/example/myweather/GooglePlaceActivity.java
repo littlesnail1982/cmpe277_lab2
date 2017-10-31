@@ -107,11 +107,13 @@ public class GooglePlaceActivity extends AppCompatActivity
                     cities.add(choosePlaceName);
                     editor.putStringSet("cities", cities);
                     editor.putString(choosePlaceName, choosePlaceID);
+                    editor.apply();
                 }
                 else if(sp.getString(choosePlaceName, null) == null){
                     cities.add(choosePlaceName);
                     editor.putStringSet("cities", cities);
                     editor.putString(choosePlaceName, choosePlaceID);
+                    editor.apply();
                 }
                 else {
                     Toast.makeText(GooglePlaceActivity.this,
