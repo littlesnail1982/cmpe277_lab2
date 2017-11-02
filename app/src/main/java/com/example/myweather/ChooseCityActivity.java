@@ -91,28 +91,29 @@ public class ChooseCityActivity extends AppCompatActivity {
                     SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
                     Set<String> cities = sp.getStringSet("cities", null);
                     if(cities != null) {
-                        if(cityData == null) {
+                    /*    if(cityData == null) {
                             cityData = cities.toArray(new String[0]);
                             adapter = new ArrayAdapter<>(
                                     this, android.R.layout.simple_list_item_1, cityData);
                             ListView cityListView = (ListView) findViewById(R.id.city_list);
                             cityListView.setAdapter(adapter);
                         }
-                        else {
+                        else { */
                             cityData = cities.toArray(new String[0]);
                             adapter = new ArrayAdapter<>(
                                     this, android.R.layout.simple_list_item_1, cityData);
                             ListView cityListView = (ListView) findViewById(R.id.city_list);
                             cityListView.setAdapter(adapter);
-                        }
+                      //  }
 
+                 /*     To be delete
                         StringBuffer sb = new StringBuffer();
                         for(int i = 0; i< cityData.length; i++) {
                             sb.append(cityData[i]);
                             sb.append(", ");
                         }
                         Toast.makeText(ChooseCityActivity.this,
-                                "cities in SharedPreferences are: " + sb.toString(), Toast.LENGTH_SHORT).show();
+                                "cities in SharedPreferences are: " + sb.toString(), Toast.LENGTH_SHORT).show(); */
                         //adapter.notifyDataSetChanged();
                     }
                     else{

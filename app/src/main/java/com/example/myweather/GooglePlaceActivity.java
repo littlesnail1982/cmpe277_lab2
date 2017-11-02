@@ -2,9 +2,12 @@ package com.example.myweather;
 
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Html;
@@ -39,6 +42,8 @@ public class GooglePlaceActivity extends AppCompatActivity
      * GoogleApiClient wraps our service connection to Google Play Services and provides access
      * to the user's sign in state as well as the Google's APIs.
      */
+    final public static int PERMISSION_REQUEST_ACCESS_FINE_LOCATION = 111;
+
     private static final int GOOGLE_API_CLIENT_ID = 0;
 
     protected GoogleApiClient mGoogleApiClient;
@@ -62,7 +67,7 @@ public class GooglePlaceActivity extends AppCompatActivity
 
     private String choosePlaceName;
 
-    private String choosePlaceID;
+    private String choosePlaceLatLng;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,13 +111,13 @@ public class GooglePlaceActivity extends AppCompatActivity
                     cities = new HashSet();
                     cities.add(choosePlaceName);
                     editor.putStringSet("cities", cities);
-                    editor.putString(choosePlaceName, choosePlaceID);
+                    editor.putString(choosePlaceName, choosePlaceLatLng);
                     editor.apply();
                 }
                 else if(sp.getString(choosePlaceName, null) == null){
                     cities.add(choosePlaceName);
                     editor.putStringSet("cities", cities);
-                    editor.putString(choosePlaceName, choosePlaceID);
+                    editor.putString(choosePlaceName, choosePlaceLatLng);
                     editor.apply();
                 }
                 else {
@@ -136,24 +141,43 @@ public class GooglePlaceActivity extends AppCompatActivity
     private View.OnClickListener mOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+            if (ContextCompat.checkSelfPermission(GooglePlaceActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(GooglePlaceActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
+                return;
+
+            }
             PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
                     .getCurrentPlace(mGoogleApiClient, null);
-            result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
-                @Override
-                public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
-                    if (!likelyPlaces.getStatus().isSuccess()) {
-                        // Request did not complete successfully
-                        Log.e(TAG, "Place query did not complete. Error: " + likelyPlaces.getStatus().toString());
+            if (result == null) {
+                Toast.makeText(GooglePlaceActivity.this,
+                        "Couldn't get current location result ", Toast.LENGTH_SHORT).show();
+            } else {
+
+                result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
+                    @Override
+                    public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
+                        if (!likelyPlaces.getStatus().isSuccess()) {
+                            // Request did not complete successfully
+                            Toast.makeText(GooglePlaceActivity.this,
+                                    "get status is not success", Toast.LENGTH_SHORT).show();
+                            likelyPlaces.release();
+                            return;
+                        }
+                        Place place = likelyPlaces.get(0).getPlace();
+                        String placeName = String.format("%s", place.getName());
+                        String placeAddress = String.format("%s", place.getAddress());
+                        String[] detail = placeAddress.split(",");
+                        choosePlaceName = detail[1];
+                        choosePlaceLatLng = Double.toString(place.getLatLng().latitude) + "," + Double.toString(place.getLatLng().longitude);
+                        mPlaceDetailsText.setText(placeName);
+                        mPlaceDetailsAttribution.setText(placeAddress);
+
                         likelyPlaces.release();
-                        return;
                     }
-                    String placeName = String.format("%s", likelyPlaces.get(0).getPlace().getName());
-                    String placeAttributuion = String.format("%s", likelyPlaces.get(0).getPlace().getAddress());
-                    mPlaceDetailsText.setText(placeName);
-                    mPlaceDetailsAttribution.setText(placeAttributuion);
-                    likelyPlaces.release();
-                }
-            });
+                });
+            }
         }
     };
 
@@ -208,14 +232,15 @@ public class GooglePlaceActivity extends AppCompatActivity
             // Get the Place object from the buffer.
             final Place place = places.get(0);
 
-            choosePlaceID = place.getId();
+            
+            choosePlaceLatLng = Double.toString(place.getLatLng().latitude) + "," + Double.toString(place.getLatLng().longitude);
             choosePlaceName = place.getAddress().toString();
 
             // Format details of the place for display and show it in a TextView.
          /*   mPlaceDetailsText.setText(formatPlaceDetails(getResources(), place.getName(),
                     place.getId(), place.getAddress(), place.getPhoneNumber(),
                     place.getWebsiteUri())); */
-            mPlaceDetailsText.setText( place.getName() + place.getId()+ place.getAddress());
+            mPlaceDetailsText.setText( place.getName() + choosePlaceLatLng + choosePlaceName);
 
 
             // Display the third party attributions if set.
@@ -263,5 +288,56 @@ public class GooglePlaceActivity extends AppCompatActivity
                 "Could not connect to Google API Client: Error " + connectionResult.getErrorCode(),
                 Toast.LENGTH_SHORT).show();
         GooglePlaceActivity.this.finish();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
+                            .getCurrentPlace(mGoogleApiClient, null);
+                    if (result == null) {
+                        Toast.makeText(GooglePlaceActivity.this,
+                                "Couldn't get current location result ", Toast.LENGTH_SHORT).show();
+                    } else {
+
+                        result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
+                            @Override
+                            public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
+                                if (!likelyPlaces.getStatus().isSuccess()) {
+                                    // Request did not complete successfully
+                                    Log.e(TAG, "Place query did not complete. Error: " + likelyPlaces.getStatus().toString());
+                                    likelyPlaces.release();
+                                    return;
+                                }
+                                Place place = likelyPlaces.get(0).getPlace();
+                                String placeName = String.format("%s", place.getName());
+                                String placeAddress = String.format("%s", place.getAddress());
+                                String[] detail = placeAddress.split(",");
+                                choosePlaceName = detail[1];
+                                choosePlaceLatLng = Double.toString(place.getLatLng().latitude) + "," + Double.toString(place.getLatLng().longitude);
+                                mPlaceDetailsText.setText(placeName);
+                                mPlaceDetailsAttribution.setText(placeAddress);
+                                likelyPlaces.release();
+                            }
+                        });
+                    }
+
+                } else {
+
+                    Toast.makeText(GooglePlaceActivity.this,
+                            "current location request denied ", Toast.LENGTH_SHORT).show();
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
     }
 }
