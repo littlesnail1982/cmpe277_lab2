@@ -3,6 +3,7 @@ package com.example.myweather;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.support.annotation.IdRes;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -10,8 +11,11 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -21,8 +25,11 @@ import java.util.Set;
 
 public class ChooseCityActivity extends AppCompatActivity {
 
+    public static final int REQUEST_GOOGLE_PLACE = 1;
+    public static final int REQUEST_DELETE_CITY = 2;
     private ArrayAdapter<String> adapter;
     private String[] cityData = null;
+    private ListView cityListView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,13 +38,13 @@ public class ChooseCityActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
+        final SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
         Set<String> cities = sp.getStringSet("cities", null);
         if(cities != null) {
             cityData = cities.toArray(new String[0]);
             adapter = new ArrayAdapter<>(
                     this, android.R.layout.simple_list_item_1, cityData);
-            ListView cityListView = (ListView) findViewById(R.id.city_list);
+            cityListView = (ListView) findViewById(R.id.city_list);
             cityListView.setAdapter(adapter);
         }
         else{
@@ -51,12 +58,42 @@ public class ChooseCityActivity extends AppCompatActivity {
                     "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
         }
 
+
+        cityListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position,
+                                    long id) {
+
+            }
+        });
+
+        RadioGroup unitGroup = (RadioGroup) findViewById(R.id.rg_unit);
+        String unit = sp.getString("unit",null);
+        if(unit == null) {
+            unitGroup.check(R.id.bt_C);
+            sp.edit().putString("unit","C").apply();
+        }
+        else {
+            if(unit.equals("C"))
+                unitGroup.check(R.id.bt_C);
+            else
+                unitGroup.check(R.id.bt_F);
+        }
+        unitGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
+                RadioButton unitbtn = (RadioButton) findViewById(checkedId);
+                //Doing temperature exchange work
+                sp.edit().putString("unit", unitbtn.getText().toString()).apply();
+            }
+        });
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent googlePlaceIntent = new Intent(ChooseCityActivity.this, GooglePlaceActivity.class);
-                startActivityForResult(googlePlaceIntent, 1);
+                startActivityForResult(googlePlaceIntent, REQUEST_GOOGLE_PLACE);
             }
         });
     }
@@ -76,7 +113,9 @@ public class ChooseCityActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_delete) {
+            Intent deleteCityIntent = new Intent(ChooseCityActivity.this, DeleteCityActivity.class);
+            startActivityForResult(deleteCityIntent, REQUEST_DELETE_CITY);
             return true;
         }
 
@@ -86,7 +125,7 @@ public class ChooseCityActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         switch (requestCode) {
-            case 1:
+            case REQUEST_GOOGLE_PLACE:
                 if(resultCode == RESULT_OK){
                     SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
                     Set<String> cities = sp.getStringSet("cities", null);
@@ -122,6 +161,21 @@ public class ChooseCityActivity extends AppCompatActivity {
                     }
                 }
                 break;
+            case REQUEST_DELETE_CITY:
+                if(resultCode == RESULT_OK) {
+                    SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
+                    Set<String> cities = sp.getStringSet("cities", null);
+                    if (cities != null) {
+                        cityData = cities.toArray(new String[0]);
+                        adapter = new ArrayAdapter<>(
+                                this, android.R.layout.simple_list_item_1, cityData);
+                        ListView cityListView = (ListView) findViewById(R.id.city_list);
+                        cityListView.setAdapter(adapter);
+                    } else {
+                        Toast.makeText(ChooseCityActivity.this,
+                                "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
+                    }
+                }
             default:
         }
     }

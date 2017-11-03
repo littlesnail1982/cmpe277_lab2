@@ -1,5 +1,6 @@
 package com.example.myweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,8 +17,10 @@ public class DeleteCityActivity extends AppCompatActivity {
     private ListView lv;
     private MyAdapter mAdapter;
     private ArrayList<String> list;
+    private ArrayList<String> del_list;
     private Button bt_selectall;
     private Button bt_deselectall;
+    private Button bt_confirm;
     private int checkNum;
     private TextView tv_show;
 
@@ -29,8 +32,10 @@ public class DeleteCityActivity extends AppCompatActivity {
         lv = (ListView) findViewById(R.id.city_delete_list);
         bt_selectall = (Button) findViewById(R.id.bt_select_all);
         bt_deselectall = (Button) findViewById(R.id.bt_cancle_select);
+        bt_confirm = (Button) findViewById(R.id.bt_confirm);
         tv_show = (TextView) findViewById(R.id.tv);
         list = new ArrayList<String>();
+        del_list = new ArrayList<String>();
         // prepare city list for Adapter
         initData();
 
@@ -44,6 +49,7 @@ public class DeleteCityActivity extends AppCompatActivity {
                 // 遍历list的长度，将MyAdapter中的map值全部设为true
                 for (int i = 0; i < list.size(); i++) {
                     MyAdapter.getIsSelected().put(i, true);
+                    del_list.add(list.get(i));
                 }
                 // 数量设为list的长度
                 checkNum = list.size();
@@ -60,11 +66,32 @@ public class DeleteCityActivity extends AppCompatActivity {
                 for (int i = 0; i < list.size(); i++) {
                     if (MyAdapter.getIsSelected().get(i)) {
                         MyAdapter.getIsSelected().put(i, false);
+                        del_list.remove(list.get(i));
                         checkNum--;// 数量减1
                     }
                 }
                 // 刷新listview和TextView的显示
                 dataChanged();
+            }
+        });
+
+
+        bt_confirm.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
+                SharedPreferences.Editor editor = sp.edit();
+                Set<String> cities = sp.getStringSet("cities", null);
+                for(int i = 0; i < del_list.size(); i++){
+                    cities.remove(del_list.get(i));
+                    editor.remove(del_list.get(i));
+                }
+                editor.putStringSet("cities",cities);
+                editor.apply();
+
+                Intent intent = new Intent();
+                setResult(RESULT_OK, intent);
+                finish();
             }
         });
 
@@ -81,19 +108,20 @@ public class DeleteCityActivity extends AppCompatActivity {
                 MyAdapter.getIsSelected().put(arg2, holder.cb.isChecked());
                 // 调整选定条目
                 if (holder.cb.isChecked() == true) {
+                    del_list.add(list.get(arg2));
                     checkNum++;
                 } else {
+                    del_list.remove(list.get(arg2));
                     checkNum--;
                 }
                 // 用TextView显示
-                tv_show.setText("Has chosen" + checkNum + "items");
+                tv_show.setText("Has chosen " + checkNum + " items");
             }
         });
     }
 
     private void initData() {
         SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sp.edit();
         Set<String> cities = sp.getStringSet("cities", null);
         if(cities != null){
             list = new ArrayList<>(cities);
