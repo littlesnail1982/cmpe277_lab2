@@ -27,7 +27,7 @@ public class ChooseCityActivity extends AppCompatActivity {
 
     public static final int REQUEST_GOOGLE_PLACE = 1;
     public static final int REQUEST_DELETE_CITY = 2;
-    private ArrayAdapter<String> adapter;
+    private CityListAdapter adapter;
     private String[] cityData = null;
     private ListView cityListView;
 
@@ -42,8 +42,7 @@ public class ChooseCityActivity extends AppCompatActivity {
         Set<String> cities = sp.getStringSet("cities", null);
         if(cities != null) {
             cityData = cities.toArray(new String[0]);
-            adapter = new ArrayAdapter<>(
-                    this, android.R.layout.simple_list_item_1, cityData);
+            adapter = new CityListAdapter(cityData, this);
             cityListView = (ListView) findViewById(R.id.city_list);
             cityListView.setAdapter(adapter);
         }
@@ -63,7 +62,9 @@ public class ChooseCityActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-
+                Intent showCityIntent = new Intent(ChooseCityActivity.this, CityActivity.class);
+                showCityIntent.putExtra("number", position);
+                startActivity(showCityIntent);
             }
         });
 
@@ -139,8 +140,7 @@ public class ChooseCityActivity extends AppCompatActivity {
                         }
                         else { */
                             cityData = cities.toArray(new String[0]);
-                            adapter = new ArrayAdapter<>(
-                                    this, android.R.layout.simple_list_item_1, cityData);
+                            adapter = new CityListAdapter(cityData, this);
                             ListView cityListView = (ListView) findViewById(R.id.city_list);
                             cityListView.setAdapter(adapter);
                       //  }
@@ -167,8 +167,7 @@ public class ChooseCityActivity extends AppCompatActivity {
                     Set<String> cities = sp.getStringSet("cities", null);
                     if (cities != null) {
                         cityData = cities.toArray(new String[0]);
-                        adapter = new ArrayAdapter<>(
-                                this, android.R.layout.simple_list_item_1, cityData);
+                        adapter = new CityListAdapter(cityData, this);
                         ListView cityListView = (ListView) findViewById(R.id.city_list);
                         cityListView.setAdapter(adapter);
                     } else {

@@ -2,16 +2,12 @@ package com.example.myweather;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -23,7 +19,7 @@ import static android.content.Context.MODE_PRIVATE;
 
 public class CityListAdapter extends BaseAdapter {
 
-    private ArrayList<String> cityList;
+    private String[] cityList;
     private ArrayList<String> localTimeList;
     private ArrayList<String> weatherList;
 
@@ -33,10 +29,10 @@ public class CityListAdapter extends BaseAdapter {
 
     private SharedPreferences sp;
 
-    private double timeStamp= 0;
+    private long timeStamp= 0;
     private boolean timeZoneTaskFinished = false;
 
-    public CityListAdapter(ArrayList<String> list, Context context) {
+    public CityListAdapter(String[] list, Context context) {
         this.context = context;
         this.cityList = list;
         inflater = LayoutInflater.from(context);
@@ -48,15 +44,19 @@ public class CityListAdapter extends BaseAdapter {
     }
 
     private void initData(){
-        for(int i=0; i<cityList.size(); i++){
-            String[] location = sp.getString(cityList.get(i),null).split(",");
-            addCity(location[0],location[1]);
+        for(int i = 0; i< cityList.length; i++){
+            String[] location = sp.getString(cityList[i],null).split(",");
+            addCity(i,location[0],location[1]);
         }
     }
 
-    private void addCity(String lat, String lng) {
-/*        timeZoneTaskFinished = false;
+    private void addCity(int pos, String lat, String lng) {
         timeStamp = Calendar.getInstance().getTimeInMillis()/1000;
+        localTimeList.add(pos, "To be set");
+        weatherList.add(pos, "To be set");
+
+/*        timeZoneTaskFinished = false;
+
         URL timeZoneSearchUrl = DateTimeNetUtils.buildUrl(Double.toString(lat), Double.toString(lng), timeStamp);
         new TimeZoneQueryTask().execute(timeZoneSearchUrl);
         URL weatherSearchUrl = NetworkUtils.buildUrl(Double.toString(lat), Double.toString(lng));
@@ -72,7 +72,7 @@ public class CityListAdapter extends BaseAdapter {
 
             holder = new CityListAdapter.ViewHolder();
 
-            convertView = inflater.inflate(R.layout.list_view_item, null);
+            convertView = inflater.inflate(R.layout.city_list_item, null);
             holder.cityName = (TextView) convertView.findViewById(R.id.city_name);
             holder.localTime = (TextView) convertView.findViewById(R.id.local_time);
             holder.weather = (TextView) convertView.findViewById(R.id.weather);
@@ -83,7 +83,7 @@ public class CityListAdapter extends BaseAdapter {
             holder = (CityListAdapter.ViewHolder) convertView.getTag();
         }
 
-        holder.cityName.setText(cityList.get(position));
+        holder.cityName.setText(cityList[position]);
         holder.localTime.setText(localTimeList.get(position));
         holder.weather.setText(weatherList.get(position));
 
@@ -92,12 +92,12 @@ public class CityListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return cityList.size();
+        return cityList.length;
     }
 
     @Override
     public Object getItem(int position) {
-        return cityList.get(position);
+        return cityList[position];
     }
 
     @Override
