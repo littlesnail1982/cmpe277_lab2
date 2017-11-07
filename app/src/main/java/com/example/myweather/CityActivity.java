@@ -11,12 +11,12 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,9 +25,7 @@ import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import org.json.JSONException;
-
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -37,13 +35,13 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
 import weatherServer.Coord;
 import weatherServer.CurrentWeather;
 import weatherServer.DayWeather;
 import weatherServer.GetTimeZoneTask;
 import weatherServer.Helper;
 import weatherServer.HourWeather;
+import weatherServer.HourWeatherToDayWeather;
 import weatherServer.TimeTransform;
 import weatherServer.TimeZoneToken;
 import weatherServer.UnitConverter;
@@ -79,10 +77,10 @@ public class CityActivity extends AppCompatActivity {
     private LocationListener locationListener = null;
     private LocationManager locationManager = null;
     String timezoneId;
-    GetTimeZoneTask getTimeZoneTask;
     long timestamp;
+    private boolean timeZoneTaskFinished=false; //mark whether the task to get the time zone is finished
 
-
+    private TimeTransform timeTransform;
 
 
     @Override
@@ -104,23 +102,20 @@ public class CityActivity extends AppCompatActivity {
         context = this;
         whetherHereView = (TextView) findViewById(R.id.whether_here);
         locationManager=(LocationManager) getSystemService(LOCATION_SERVICE);
-        getTimeZoneTask=new GetTimeZoneTask();
+        timeTransform=new TimeTransform();
 
         getEnvironment(); //get the values in sharedPreference
         //getCurrent();//Get the city name of the current location
         getCurrentByGPS();
         weatherTask = new WeatherTask();
-
-
+        //get the the time zone of the local city
+        new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),0));
         //set the forcast weather
-        new GetForcastWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
+        //new GetForcastWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
         //Get hour weather
         new GetHoursWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
         //set the current weather
         new GetCurrentWeather().execute(WeatherToken.currentWeatherApiRequest(coord.getLat(), coord.getLon()));
-        //Get current time
-        //new GetTimeZoneIdTask().execute(TimeZoneToken.currentTimeZonerApiRequest(lat,lon,0));
-
     }
 
 //Click the back action bar button, go back to its parent activity--choose city activit
@@ -146,7 +141,7 @@ public class CityActivity extends AppCompatActivity {
 */
 
 
-    //get the coord of the desired unit
+    /*1: get the coord of the desired unit*/
     public void getEnvironment() {
         sp = getSharedPreferences("data", MODE_PRIVATE);
         //check whether there is the value
@@ -177,8 +172,220 @@ public class CityActivity extends AppCompatActivity {
             editor.putString("unit", unit);
             editor.commit();
         }
-
     }
+
+
+
+    /* 2: Get the timezone of the city */
+    private class GetTimeZone extends AsyncTask<String, Void, String>{
+        @Override
+        protected String doInBackground(String... params) {
+            String stream = null;
+            String url = params[0];
+            Helper helper = new Helper();
+            stream = helper.getHTTPData(url);
+            return stream;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            GetTimeZoneTask gtzt=new GetTimeZoneTask();
+            timezoneId=gtzt.getTimeZone(s);
+            timeZoneTaskFinished=true;
+        }
+    }
+
+
+    /*3: Get hour info for 5 days*/
+    private class GetHoursWeather extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            String stream = null;
+            String url = params[0];
+            Helper helper = new Helper();
+            stream = helper.getHTTPData(url);
+            return stream;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            try {
+                hoursWeather = weatherTask.getWeatherForcastPer3HoursNext5ddaysByCoordinates(s);
+                while(timeZoneTaskFinished==false){
+                    try{
+                        Log.d("Hours Weather","Waiting for the task to get the time zone");
+                        Thread.sleep(100);
+                    }catch(InterruptedException e){
+                        e.printStackTrace();
+                    }
+                }
+
+                //Transform the time to local time for hour weather
+                if(hoursWeather!=null && hoursWeather.size()>0){
+                    //change the time format
+                    for (int i=0;i<hoursWeather.size();i++){
+                        long timestamp=hoursWeather.get(i).getTimestamp();
+                        int hour=timeTransform.getHour(timestamp,timezoneId);
+                        Date date=timeTransform.getDate(timestamp,timezoneId);
+                        hoursWeather.get(i).setDate(date);
+                        hoursWeather.get(i).setHour(hour);
+                    }
+                }
+
+                //put into the adapter
+                HourWeatherAdapter hourWeatherAdapter=new HourWeatherAdapter();
+                gridView.setAdapter(hourWeatherAdapter);  //show the hour weather
+                daysWeather=new HourWeatherToDayWeather().GetDayWeather(hoursWeather);
+                DayWeatherAdapter dayWeatherAdapter=new DayWeatherAdapter();
+                listView.setAdapter(dayWeatherAdapter);  //show the day weather
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /* 4: Hour Show in front task */
+    public class HourWeatherAdapter extends BaseAdapter {
+
+        @Override
+        //public int getCount() {return days.length;}
+        public int getCount() {
+            return hoursWeather.size()>8?8:hoursWeather.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int i, View v, ViewGroup parent) {
+            v = getLayoutInflater().inflate(R.layout.hourweatherlistlayout, null);
+            TextView timeView = (TextView) v.findViewById(R.id.time);
+            TextView temperatureView = (TextView) v.findViewById(R.id.temperature);
+            TextView weatherView = (TextView) v.findViewById(R.id.weather);
+
+            timeView.setText("" + hoursWeather.get(i).getHour());
+            weatherView.setText(hoursWeather.get(i).getWeather());
+            double temperature = hoursWeather.get(i).getTempInK();
+            if (unit.equals("C")) {
+                temperatureView.setText("" + (int) unitConverter.Kelvin2Celsius(temperature) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
+            } else {
+                temperatureView.setText("" + (int) unitConverter.Kelvin2Farenheit(temperature) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
+            }
+            return v;
+        }
+    }
+
+    /*5: DayWeather Adapter*/
+
+    class DayWeatherAdapter extends BaseAdapter {
+        @Override
+        //public int getCount() {return days.length;}
+        public int getCount() {
+            return daysWeather.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int i, View convertView, ViewGroup parent) {
+            convertView = getLayoutInflater().inflate(R.layout.dayweatherlistlayout, null);
+            TextView day = (TextView) convertView.findViewById(R.id.day);
+            TextView weather = (TextView) convertView.findViewById(R.id.weather);
+            TextView minTemp = (TextView) convertView.findViewById(R.id.maxTemp);
+            TextView maxTemp = (TextView) convertView.findViewById(R.id.minTemp);
+
+            day.setText(daysWeather.get(i).getDateofWeek());
+            weather.setText(daysWeather.get(i).getWeather());
+            double minTempInK = daysWeather.get(i).getMin_temp();
+            double maxTempInK = daysWeather.get(i).getMax_temp();
+            if (unit.equals("C")) {
+                minTemp.setText("" + (int) unitConverter.Kelvin2Celsius(minTempInK) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
+                maxTemp.setText("" + (int) unitConverter.Kelvin2Celsius(maxTempInK) + (char) 0x00B0);
+            } else {
+                minTemp.setText("" + (int) unitConverter.Kelvin2Farenheit(minTempInK) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
+                maxTemp.setText("" + (int) unitConverter.Kelvin2Farenheit(maxTempInK) + (char) 0x00B0);
+            }
+            return convertView;
+        }
+    }
+
+
+
+    /* 6: Get current weather */
+    private class GetCurrentWeather extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            String stream = null;
+            String url = params[0];
+            Helper helper = new Helper();
+            stream = helper.getHTTPData(url);
+            return stream;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            try {
+                currentWeather = weatherTask.getCurrentWeatherByCoordinates(s);
+                while(timeZoneTaskFinished==false){
+                    try{
+                        Log.d("Hours Weather","Waiting for the task to get the time zone");
+                        Thread.sleep(100);
+                    }catch(InterruptedException e){
+                        e.printStackTrace();
+                    }
+                }
+
+                //Transform the time to local time for current weather and put into Adapter
+                if(currentWeather!=null){
+                    long timestamp=currentWeather.getTimestamp();
+                    Date date=timeTransform.getDate(timestamp,timezoneId);
+                    DateFormat format=new SimpleDateFormat("EEEE MMM d");
+                    todayDateView.setText(format.format(date));
+                    weatherView.setText(currentWeather.getWeather());
+                    cityNameView.setText(currentWeather.getCityName());
+
+                    double tempInK = currentWeather.getTemperatureInK();
+                    double minTempInK = currentWeather.getMin_Temperature();
+                    double maxTempInk = currentWeather.getMax_Temperature();
+                    if (unit.equals("C")) {
+                        temperatureView.setText("" + (int) unitConverter.Kelvin2Celsius(tempInK) + (char) 0x00B0);
+                        todayMinView.setText("" + (int) unitConverter.Kelvin2Celsius(minTempInK) + (char) 0x00B0);
+                        todayMaxView.setText("" + (int) unitConverter.Kelvin2Celsius(maxTempInk) + (char) 0x00B0);
+                    } else {
+                        temperatureView.setText("" + (int) unitConverter.Kelvin2Farenheit(tempInK) + (char) 0x00B0);
+                        todayMinView.setText("" + (int) unitConverter.Kelvin2Farenheit(minTempInK) + (char) 0x00B0);
+                        todayMaxView.setText("" + (int) unitConverter.Kelvin2Farenheit(maxTempInk) + (char) 0x00B0);
+                    }
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 
     //change the unit of temperature
     public String changeUnit() {
@@ -214,7 +421,6 @@ public class CityActivity extends AppCompatActivity {
             }
 
         }
-
         return 0;
     }
 
@@ -343,269 +549,8 @@ public class CityActivity extends AppCompatActivity {
     }
 
 */
-    /*
-    Get day weather
-     */
-
-    class DayWeatherAdapter extends BaseAdapter {
-        @Override
-        //public int getCount() {return days.length;}
-        public int getCount() {
-            return daysWeather.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int i, View convertView, ViewGroup parent) {
-            convertView = getLayoutInflater().inflate(R.layout.dayweatherlistlayout, null);
-            TextView day = (TextView) convertView.findViewById(R.id.day);
-            TextView weather = (TextView) convertView.findViewById(R.id.weather);
-            TextView minTemp = (TextView) convertView.findViewById(R.id.maxTemp);
-            TextView maxTemp = (TextView) convertView.findViewById(R.id.minTemp);
-
-            day.setText(daysWeather.get(i).getDaytime());
-            weather.setText(daysWeather.get(i).getWeather());
-            double minTempInK = daysWeather.get(i).getMin_temp();
-            double maxTempInK = daysWeather.get(i).getMax_temp();
-            if (unit.equals("C")) {
-                minTemp.setText("" + (int) unitConverter.Kelvin2Celsius(minTempInK) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
-                maxTemp.setText("" + (int) unitConverter.Kelvin2Celsius(maxTempInK) + (char) 0x00B0);
-            } else {
-                minTemp.setText("" + (int) unitConverter.Kelvin2Farenheit(minTempInK) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
-                maxTemp.setText("" + (int) unitConverter.Kelvin2Farenheit(maxTempInK) + (char) 0x00B0);
-            }
-            return convertView;
-        }
-    }
-
-
-    private class GetForcastWeather extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String stream = null;
-            String url = params[0];
-            Helper helper = new Helper();
-            stream = helper.getHTTPData(url);
-            return stream;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            try {
-                daysWeather = weatherTask.getNext5DaysWeatherForcastByCoordinates(s);
-                DayWeatherAdapter dwa = new DayWeatherAdapter();
-                listView.setAdapter(dwa);
-
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
-
-
-
-
-    /*
-    Get Hours forcast weather
-     */
-
-    public class HourWeatherAdapter1 extends BaseAdapter {
-
-        @Override
-        //public int getCount() {return days.length;}
-        public int getCount() {
-            return hoursWeather.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @NonNull
-        @Override
-        public View getView(int i, View v, ViewGroup parent) {
-            v = getLayoutInflater().inflate(R.layout.hourweatherlistlayout, null);
-            TextView timeView = (TextView) v.findViewById(R.id.time);
-            TextView temperatureView = (TextView) v.findViewById(R.id.temperature);
-            TextView weatherView = (TextView) v.findViewById(R.id.weather);
-
-            timeView.setText("" + hoursWeather.get(i).getHour());
-            weatherView.setText(hoursWeather.get(i).getWeather());
-            double temperature = hoursWeather.get(i).getTempInK();
-            if (unit.equals("C")) {
-                temperatureView.setText("" + (int) unitConverter.Kelvin2Celsius(temperature) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
-            } else {
-                temperatureView.setText("" + (int) unitConverter.Kelvin2Farenheit(temperature) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
-            }
-            return v;
-        }
-    }
-
-    private class GetHoursWeather extends AsyncTask<String, Void, String> {
-
-        @Override
-        protected String doInBackground(String... params) {
-            String stream = null;
-            String url = params[0];
-            Helper helper = new Helper();
-            stream = helper.getHTTPData(url);
-            return stream;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            try {
-                hoursWeather = weatherTask.getWeatherForcastPer3HoursNext24HoursByCoordinates(s);
-                //HourWeatherAdapter1 hwa = new HourWeatherAdapter1();
-                //gridView.setAdapter(hwa);
-                new GetHoursLocalTime().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),hoursWeather.get(0).getTimestamp()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
-
-
-
-
-    //Get
-    private class GetHoursLocalTime extends AsyncTask<String, Void, String>{
-        @Override
-        protected String doInBackground(String... params) {
-            String stream = null;
-            String url = params[0];
-            Helper helper = new Helper();
-            stream = helper.getHTTPData(url);
-            return stream;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            GetTimeZoneTask gtzt=new GetTimeZoneTask();
-            timezoneId=gtzt.getTimeZone(s);
-            TimeTransform timeTransform=new TimeTransform();
-            for(int i=0;i<hoursWeather.size();i++){
-                long timestamp=hoursWeather.get(i).getTimestamp();
-                Date todayDate=timeTransform.getTimeForSepcificTimeZone(timestamp,timezoneId);
-                Calendar calendar = GregorianCalendar.getInstance();
-                calendar.setTime(todayDate);
-                int hour=calendar.get(Calendar.HOUR_OF_DAY);
-                hoursWeather.get(i).setHour(hour);
-            }
-
-            HourWeatherAdapter1 hwa = new HourWeatherAdapter1();
-            gridView.setAdapter(hwa);
-
-        }
-    }
-
-
-    /*
-    Change the time to local time
-     */
-
-
-    /*
-    Get current weather
-     */
-
-    private class GetCurrentWeather extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String stream = null;
-            String url = params[0];
-            Helper helper = new Helper();
-            stream = helper.getHTTPData(url);
-            return stream;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            try {
-                currentWeather = weatherTask.getCurrentWeatherByCoordinates(s);
-                weatherView.setText(currentWeather.getWeather());
-                cityNameView.setText(currentWeather.getCityName());
-
-                double tempInK = currentWeather.getTemperatureInK();
-                double minTempInK = currentWeather.getMin_Temperature();
-                double maxTempInk = currentWeather.getMax_Temperature();
-                if (unit.equals("C")) {
-                    temperatureView.setText("" + (int) unitConverter.Kelvin2Celsius(tempInK) + (char) 0x00B0);
-                    todayMinView.setText("" + (int) unitConverter.Kelvin2Celsius(minTempInK) + (char) 0x00B0);
-                    todayMaxView.setText("" + (int) unitConverter.Kelvin2Celsius(maxTempInk) + (char) 0x00B0);
-                } else {
-                    temperatureView.setText("" + (int) unitConverter.Kelvin2Farenheit(tempInK) + (char) 0x00B0);
-                    todayMinView.setText("" + (int) unitConverter.Kelvin2Farenheit(minTempInK) + (char) 0x00B0);
-                    todayMaxView.setText("" + (int) unitConverter.Kelvin2Farenheit(maxTempInk) + (char) 0x00B0);
-                }
-
-                timestamp=currentWeather.getTimestamp();
-                new GetCurrentLocalTime().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),timestamp));
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
-
-    private class GetCurrentLocalTime extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String stream = null;
-            String url = params[0];
-            Helper helper = new Helper();
-            stream = helper.getHTTPData(url);
-            return stream;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            GetTimeZoneTask gtzt=new GetTimeZoneTask();
-            timezoneId=gtzt.getTimeZone(s);
-            TimeTransform timeTransform=new TimeTransform();
-            Date todayDate=timeTransform.getTimeForSepcificTimeZone(timestamp,timezoneId); //利用了GetCurrentWeather Post中的timezone
-            // DateFormat format = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
-            DateFormat format=new SimpleDateFormat("EEEE MMM d");
-            todayDateView.setText(format.format(todayDate));
-        }
-    }
-
-
-
 
     //Get current Location----Start
-
     public void getCurrent() {
         if (ContextCompat.checkSelfPermission(CityActivity.this,
                 android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -667,8 +612,6 @@ public class CityActivity extends AppCompatActivity {
                 Toast.makeText(CityActivity.this, "GPS NOT FOUND", Toast.LENGTH_SHORT).show();
             }
         }
-
-
         else {
             Toast.makeText(CityActivity.this, "GPS is off", Toast.LENGTH_SHORT).show();
         }
@@ -726,7 +669,7 @@ public class CityActivity extends AppCompatActivity {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     */
-    //get current city name
+    //get current city name using geocode according to the Coordinates
     public String currentCity(double lat, double lon){
         String curCity="";
         Geocoder geocoder=new Geocoder(CityActivity.this, Locale.getDefault());

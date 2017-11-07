@@ -22,43 +22,18 @@ public class WeatherTask{
     List<HourWeather> hoursWeather=null;
     String timeZoneId=null;
 
-    // get current temp by Coordinates
-    public CurrentWeather getCurrentWeatherByCoordinates(String stream) throws IOException, JSONException {
-        /*
-        WeatherToken wk = new WeatherToken();
-        String url = wk.currentWeatherApiRequest(coord.getLat(), coord.getLon());
-        Helper helper = new Helper();
-        String stream = helper.getHTTPData(url);
-        */
-        return getCurrentWeather(stream);
-    }
 
 
-    // Get weather information for next 24 hours per 3hours by Coordinates
-    public List<HourWeather> getWeatherForcastPer3HoursNext24HoursByCoordinates(String stream) throws IOException, JSONException {
-        /*
-        WeatherToken wk = new WeatherToken();
-        String url = wk.forcustWeatherApiRequest(coord.getLat(), coord.getLon());
-        Helper helper = new Helper();
-        String stream = helper.getHTTPData(url);
-        */
-        return getWeatherInfoPer3HoursNext24Hours(stream);
-    }
 
     // Get weather information for next 5 days
+    /*
     public List<DayWeather> getNext5DaysWeatherForcastByCoordinates(String stream) throws IOException, JSONException {
-        /*
-        WeatherToken wk = new WeatherToken();
-        String url = wk.forcustWeatherApiRequest(coord.getLat(), coord.getLon());
-
-        Helper helper = new Helper();
-        String stream = helper.getHTTPData(url);
-        */
         return getWeatherInfoNext5Days(stream);
     }
 
-    //Get current information
-    private CurrentWeather getCurrentWeather(String stream) {
+*/
+    // get current temp by Coordinates
+    public CurrentWeather getCurrentWeatherByCoordinates(String stream) throws IOException, JSONException {
         CurrentWeather currentWeather = new CurrentWeather();
         JSONObject json = null;
 
@@ -91,16 +66,11 @@ public class WeatherTask{
                 }
             }
 
-
             //Get timezone with coordinates
             JSONObject coordObject=json.getJSONObject("coord");
             Double lat=coordObject.getDouble("lat");
             Double lon=coordObject.getDouble("lon");
             Coord coord=new Coord(lat,lon);
-
-           // new GetTimeZoneIdTask().execute(TimeZoneToken.currentTimeZonerApiRequest(lat,lon,timestamp));
-
-            //currentWeather.setTimezoneId(timeZoneId);
 
             this.currentWeather=currentWeather;
         } catch (JSONException e) {
@@ -111,30 +81,37 @@ public class WeatherTask{
         return currentWeather;
     }
 
-/*
 
-    private class GetTimeZoneIdTask extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String stream = null;
-            String url = params[0];
-            Helper helper = new Helper();
-            stream = helper.getHTTPData(url);
-            return stream;
+    // Get weather information for next 5 days per 3hours by Coordinates
+    public List<HourWeather> getWeatherForcastPer3HoursNext5ddaysByCoordinates(String stream) throws IOException, JSONException {
+        List<HourWeather> hw=null;
+        JSONObject json = null;
+        try {
+            json = new JSONObject(stream);
+            JSONArray jsonArray = new JSONArray();
+            JSONArray infoList = json.getJSONArray("list");
+            int len=infoList.length();
+            hw=new ArrayList<HourWeather>(len);
+            for (int i = 0; i <len ; i++) {
+                JSONObject obj = new JSONObject();
+                JSONObject info = infoList.getJSONObject(i);
+                long timestamp=info.getLong("dt");
+                JSONObject temperatureList = info.getJSONObject("main");  //main weather
+                double temperatureK = temperatureList.getDouble("temp");   //temperatuere
+                JSONObject weatherInfo = info.getJSONArray("weather").getJSONObject(0);
+                String weather = weatherInfo.getString("main");
+                hw.add(new HourWeather(weather,temperatureK,timestamp));
+            }
+            this.hoursWeather=hw;
+            return hw;
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            GetTimeZoneTask gtzt=new GetTimeZoneTask();
-            timeZoneId=gtzt.getTimeZone(s);
-        }
+        return hw;
     }
-*/
 
-
-    // Get weather information for next 24 hours per 3hours
-    private List<HourWeather> getWeatherInfoPer3HoursNext24Hours(String stream)  {
+    // Get weather information for next 24 hours per 3hours by Coordinates
+    public List<HourWeather> getWeatherForcastPer3HoursNext24HoursByCoordinates(String stream) throws IOException, JSONException {
         List<HourWeather> hw=null;
         JSONObject json = null;
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
@@ -159,7 +136,6 @@ public class WeatherTask{
                     e.printStackTrace();
                 }
 
-
                 //temperature info
                 JSONObject temperatureList = info.getJSONObject("main");
                 double temperatureK = temperatureList.getDouble("temp");
@@ -167,7 +143,7 @@ public class WeatherTask{
                 //weather info
                 JSONObject weatherList = info.getJSONArray("weather").getJSONObject(0);
                 String weather = weatherList.getString("main");
-                hw.add(new HourWeather(time,weather,temperatureK,timestamp));
+                //hw.add(new HourWeather(time,weather,temperatureK,timestamp));
             }
             this.hoursWeather=hw;
             return hw;
@@ -186,6 +162,7 @@ public class WeatherTask{
     temperature around noon of each day
     weather status around noon of each day
      */
+    /*
     private List<DayWeather> getWeatherInfoNext5Days(String stream)  {
         List<DayWeather> result=new ArrayList<>();
         JSONObject json = null;
@@ -233,6 +210,6 @@ public class WeatherTask{
         }
         return result;
     }
-
+*/
 
 }

@@ -1,14 +1,18 @@
 package weatherServer;
 
+import java.util.Date;
+
 /**
  * Created by tubaozi on 10/31/17.
  */
 public class DayWeather {
 
-    public DayWeather(String datetime, double min_temp, double max_temp, String weather){
+    public DayWeather(Date date, double min_temp, double max_temp, String weather, String dateofWeek){
         this.min_temp=min_temp;
         this.max_temp=max_temp;
         this.weather=weather;
+        this.date=date;
+        this.dateofWeek=dateofWeek;
     }
     public double getMin_temp() {
         return min_temp;
@@ -35,29 +39,30 @@ public class DayWeather {
     }
 
 
-    public long getTimestamp() {
-        return timestamp;
+
+
+    public Date getDate() {
+        return date;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setDate(Date date) {
+        this.date = date;
     }
 
-
-
-    public String getDaytime() {
-        return daytime;
-    }
-
-    public void setDaytime(String daytime) {
-        this.daytime = daytime;
-    }
-
-    String daytime;
+    Date date;
     double min_temp;
     double max_temp;
     String weather;
-    long timestamp;
+
+    public String getDateofWeek() {
+        return dateofWeek;
+    }
+
+    public void setDateofWeek(String dateofWeek) {
+        this.dateofWeek = dateofWeek;
+    }
+
+    String dateofWeek;
 
 
 }
