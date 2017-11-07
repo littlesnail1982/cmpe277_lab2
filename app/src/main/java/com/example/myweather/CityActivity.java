@@ -16,6 +16,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -79,8 +80,8 @@ public class CityActivity extends AppCompatActivity {
     String timezoneId;
     long timestamp;
     private boolean timeZoneTaskFinished=false; //mark whether the task to get the time zone is finished
-
     private TimeTransform timeTransform;
+    int cityNumber;
 
 
     @Override
@@ -103,48 +104,22 @@ public class CityActivity extends AppCompatActivity {
         whetherHereView = (TextView) findViewById(R.id.whether_here);
         locationManager=(LocationManager) getSystemService(LOCATION_SERVICE);
         timeTransform=new TimeTransform();
-
+        number = getIntent().getIntExtra("number",-1); //the position of the targed city
         getEnvironment(); //get the values in sharedPreference
-        //getCurrent();//Get the city name of the current location
         getCurrentByGPS();
         weatherTask = new WeatherTask();
         //get the the time zone of the local city
         new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),0));
-        //set the forcast weather
-        //new GetForcastWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
         //Get hour weather
         new GetHoursWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
         //set the current weather
         new GetCurrentWeather().execute(WeatherToken.currentWeatherApiRequest(coord.getLat(), coord.getLon()));
     }
 
-//Click the back action bar button, go back to its parent activity--choose city activit
-/*
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                Intent upIntent = NavUtils.getParentActivityIntent(this);
-                if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-                    TaskStackBuilder.create(this)
-                            .addNextIntentWithParentStack(upIntent)
-                            .startActivities();
-                } else {
-                    upIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    NavUtils.navigateUpTo(this, upIntent);
-                }
-                return true;
-        }
-        return true;
-    }
-
-*/
-
-
     /*1: get the coord of the desired unit*/
     public void getEnvironment() {
-        sp = getSharedPreferences("data", MODE_PRIVATE);
         //check whether there is the value
+        /*
         number = sp.getInt("number", -1);
         if (number == -1) {
             number = 0;
@@ -152,25 +127,32 @@ public class CityActivity extends AppCompatActivity {
             editor.putInt("number", 0);
             editor.commit();
         }
-
-        Set<String> cities = sp.getStringSet("cities", null);
-        String[] coordArr = new String[]{"0", "0"};
-        if (cities != null) {
-            String[] cityData = cities.toArray(new String[0]);
-            if (number < cityData.length) { //the unit Number
-                String coordStr = sp.getString(cityData[number], null);
-                coordArr = coordStr.split(",");
+        */
+        try{
+            sp = getSharedPreferences("data", MODE_PRIVATE);
+            Set<String> cities = sp.getStringSet("cities", null);
+            String[] coordArr = new String[]{"0", "0"};
+            if (cities != null) {
+                String[] cityData = cities.toArray(new String[0]);
+                cityNumber=cityData.length;
+                if (number < cityData.length && number>=0) { //the unit Number
+                    String coordStr = sp.getString(cityData[number], null);
+                    coordArr = coordStr.split(",");
+                }
             }
-        }
-        coord = new Coord(Double.parseDouble(coordArr[0]), Double.parseDouble(coordArr[1]));
+            coord = new Coord(Double.parseDouble(coordArr[0]), Double.parseDouble(coordArr[1]));
 
-        //
-        unit = sp.getString("unit", "K");
-        if (unit.equals("K")) {
-            unit = "C";
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString("unit", unit);
-            editor.commit();
+            //
+            unit = sp.getString("unit", "K");
+            if (unit.equals("K")) {
+                unit = "C";
+                SharedPreferences.Editor editor = sp.edit();
+                editor.putString("unit", unit);
+                editor.commit();
+            }
+
+        }catch (Exception e){
+            Log.d("SharedPreference","Missed Date in SharedPreference");
         }
     }
 
@@ -237,9 +219,11 @@ public class CityActivity extends AppCompatActivity {
                 //put into the adapter
                 HourWeatherAdapter hourWeatherAdapter=new HourWeatherAdapter();
                 gridView.setAdapter(hourWeatherAdapter);  //show the hour weather
+                hourWeatherAdapter.notifyDataSetChanged();
                 daysWeather=new HourWeatherToDayWeather().GetDayWeather(hoursWeather);
                 DayWeatherAdapter dayWeatherAdapter=new DayWeatherAdapter();
                 listView.setAdapter(dayWeatherAdapter);  //show the day weather
+                dayWeatherAdapter.notifyDataSetChanged();
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (JSONException e) {
@@ -400,6 +384,7 @@ public class CityActivity extends AppCompatActivity {
         return unit;
     }
 
+    /*
     //Change the number of city location
     public int changNumber(int i) {
         sp = getSharedPreferences("data", MODE_PRIVATE);
@@ -419,11 +404,20 @@ public class CityActivity extends AppCompatActivity {
                     return number + i;
                 }
             }
-
         }
         return 0;
     }
 
+*/
+
+
+    public int changeNumber(int i){
+        number+=i;
+        if (number<0 || number>=cityNumber) {  //when the number of the cities is out of range
+            number-=i;
+        }
+        return number;
+    }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -435,26 +429,31 @@ public class CityActivity extends AppCompatActivity {
                 x2 = event.getX();
                 float deltaX = x2 - x1;
                 if (Math.abs(deltaX) > MIN_DISTANCE) {
-                    if (deltaX > 0) {
-                        changNumber(1);
-                        Intent intent = new Intent(this, CityActivity.class);
-                        finish();
-                        startActivity(intent);
-
-
-                    } else {
-                        //right to left
-                        changNumber(-1);
-                        Intent intent = new Intent(this, CityActivity.class);
-                        finish();
-                        startActivity(intent);
-                    }
+                    if (deltaX > 0) changeNumber(1); //left to right
+                    else changeNumber(-1); ////right to left
+                    changeCity();
                 } else {
                     // consider as something else - a screen tap for example
+                    Log.d("No Change","The movement is too slight");
                 }
                 break;
         }
         return super.onTouchEvent(event);
+    }
+
+
+
+    public void changeCity(){
+        getEnvironment(); //get the values in sharedPreference
+        //getCurrent();//Get the city name of the current location
+        getCurrentByGPS();
+        weatherTask = new WeatherTask();
+        //get the the time zone of the local city
+        new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),0));
+        //Get hour weather
+        new GetHoursWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
+        //set the current weather
+        new GetCurrentWeather().execute(WeatherToken.currentWeatherApiRequest(coord.getLat(), coord.getLon()));
     }
     /*
 

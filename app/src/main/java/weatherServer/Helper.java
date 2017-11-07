@@ -1,5 +1,7 @@
 package weatherServer;
 
+import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -19,22 +21,19 @@ public class Helper {
         try {
             URL u= new URL(url);
             HttpURLConnection httpURLConnection=(HttpURLConnection) u.openConnection();
-            System.out.println("ddddd");
             if(httpURLConnection.getResponseCode()==200){
-                System.out.println("Connect Successfully");
                 BufferedReader rd = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream(), Charset.forName("UTF-8")),8);
-
                 StringBuilder sb = new StringBuilder();
                 String cp;
                 while ((cp = rd.readLine()) != null) {
                     sb.append(cp);
                 }
-
                 stream=sb.toString();
                 httpURLConnection.disconnect();
             }
             else{
-                System.out.println("66666");
+                Log.d("URL Response Error","Nothing Returned");
+
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -46,7 +45,7 @@ public class Helper {
     }
 
 
-
+/*
     private static String readAll(BufferedReader rd) throws IOException {
 
         StringBuilder sb = new StringBuilder();
@@ -56,6 +55,6 @@ public class Helper {
         }
         return sb.toString();
     }
-
+*/
 
 }

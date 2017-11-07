@@ -18,20 +18,8 @@ import java.util.List;
  */
 public class WeatherTask{
     CurrentWeather currentWeather=null;
-    List<DayWeather> daysWeather=null;
     List<HourWeather> hoursWeather=null;
-    String timeZoneId=null;
 
-
-
-
-    // Get weather information for next 5 days
-    /*
-    public List<DayWeather> getNext5DaysWeatherForcastByCoordinates(String stream) throws IOException, JSONException {
-        return getWeatherInfoNext5Days(stream);
-    }
-
-*/
     // get current temp by Coordinates
     public CurrentWeather getCurrentWeatherByCoordinates(String stream) throws IOException, JSONException {
         CurrentWeather currentWeather = new CurrentWeather();
@@ -65,13 +53,6 @@ public class WeatherTask{
 
                 }
             }
-
-            //Get timezone with coordinates
-            JSONObject coordObject=json.getJSONObject("coord");
-            Double lat=coordObject.getDouble("lat");
-            Double lon=coordObject.getDouble("lon");
-            Coord coord=new Coord(lat,lon);
-
             this.currentWeather=currentWeather;
         } catch (JSONException e) {
             e.printStackTrace();
@@ -88,12 +69,10 @@ public class WeatherTask{
         JSONObject json = null;
         try {
             json = new JSONObject(stream);
-            JSONArray jsonArray = new JSONArray();
             JSONArray infoList = json.getJSONArray("list");
             int len=infoList.length();
             hw=new ArrayList<HourWeather>(len);
             for (int i = 0; i <len ; i++) {
-                JSONObject obj = new JSONObject();
                 JSONObject info = infoList.getJSONObject(i);
                 long timestamp=info.getLong("dt");
                 JSONObject temperatureList = info.getJSONObject("main");  //main weather
@@ -109,107 +88,5 @@ public class WeatherTask{
         }
         return hw;
     }
-
-    // Get weather information for next 24 hours per 3hours by Coordinates
-    public List<HourWeather> getWeatherForcastPer3HoursNext24HoursByCoordinates(String stream) throws IOException, JSONException {
-        List<HourWeather> hw=null;
-        JSONObject json = null;
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
-        Calendar calendar = Calendar.getInstance();
-        try {
-            json = new JSONObject(stream);
-            JSONArray jsonArray = new JSONArray();
-            JSONArray infoList = json.getJSONArray("list");
-            int len=infoList.length()>=8? 8: infoList.length();
-            hw=new ArrayList<HourWeather>(len);
-            for (int i = 0; i < len; i++) { //get weather info for next 24 hours
-                JSONObject obj = new JSONObject();
-                JSONObject info = infoList.getJSONObject(i);
-                String time=info.getString("dt_txt");
-                long timestamp=info.getLong("dt");
-                int hour=0;
-                try {
-                    calendar.setTime(simpleDateFormat.parse(time));
-                    hour=calendar.get(Calendar.HOUR_OF_DAY);
-
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
-                //temperature info
-                JSONObject temperatureList = info.getJSONObject("main");
-                double temperatureK = temperatureList.getDouble("temp");
-
-                //weather info
-                JSONObject weatherList = info.getJSONArray("weather").getJSONObject(0);
-                String weather = weatherList.getString("main");
-                //hw.add(new HourWeather(time,weather,temperatureK,timestamp));
-            }
-            this.hoursWeather=hw;
-            return hw;
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        return hw;
-    }
-
-
-    //Get the weather info for next 5 days
-    /*
-    date:
-    temperature around noon of each day
-    weather status around noon of each day
-     */
-    /*
-    private List<DayWeather> getWeatherInfoNext5Days(String stream)  {
-        List<DayWeather> result=new ArrayList<>();
-        JSONObject json = null;
-        //format of info
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_YEAR, 1); //tomorrow
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        int j=0;
-        try {
-            json = new JSONObject(stream);
-
-            //json=new JSONObject(stream.substring(stream.indexOf("{"), stream.lastIndexOf("}") + 1));
-            JSONArray infoList = json.getJSONArray("list");
-            double minTemp = Double.MAX_VALUE;
-            double maxTemp = Double.MIN_VALUE;
-            for (int i = 0; i < infoList.length(); i++) {
-                JSONObject obj = new JSONObject();
-                JSONObject info = infoList.getJSONObject(i);
-                //update the temperature
-                String time = info.getString("dt_txt");
-                JSONObject temperatureList = info.getJSONObject("main");
-                double temperatureK = temperatureList.getDouble("temp");
-                minTemp = Math.min(minTemp, temperatureK);
-                maxTemp = Math.max(maxTemp, temperatureK);
-                //Store the info of the next 5 days at noon
-                String temp1=sdf.format(calendar.getTime());
-                if (time.equals(sdf.format(calendar.getTime()) + " 12:00:00") && j<5) {
-                    JSONObject weatherList = info.getJSONArray("weather").getJSONObject(0);
-
-                    SimpleDateFormat weekDayFormat = new SimpleDateFormat("EEEE"); //Day of week, such as Monday
-                    String weekDay=weekDayFormat.format(calendar.getTime());
-                    String weather = weatherList.getString("main");
-                    DayWeather temp=new DayWeather(sdf.format(calendar.getTime()),minTemp,maxTemp,weather); //不是最高最低
-                    result.add(temp);
-                    calendar.add(Calendar.DAY_OF_YEAR, 1); //plus one day
-                    j++;
-                }
-            }
-
-            this.daysWeather=result;
-            return result;
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return result;
-    }
-*/
 
 }
