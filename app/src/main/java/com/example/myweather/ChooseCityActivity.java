@@ -37,22 +37,24 @@ public class ChooseCityActivity extends AppCompatActivity {
         setContentView(R.layout.activity_choose_city);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        cityListView = (ListView) findViewById(R.id.city_list);
 
         final SharedPreferences sp = getSharedPreferences("data", MODE_PRIVATE);
         Set<String> cities = sp.getStringSet("cities", null);
         if(cities != null) {
             cityData = cities.toArray(new String[0]);
             adapter = new CityListAdapter(cityData, this);
-            cityListView = (ListView) findViewById(R.id.city_list);
             cityListView.setAdapter(adapter);
         }
         else{
-        //    String[] test = {"San Jose", "Santa Clara", "San Francisco", "City4", "City 5"};
-        //    String[] cityData = new String[cities.size()];
+            //    String[] test = {"San Jose", "Santa Clara", "San Francisco", "City4", "City 5"};
+            //    String[] cityData = new String[cities.size()];
          /*   ArrayAdapter<String> adapter = new ArrayAdapter<>(
                     ChooseCityActivity.this, android.R.layout.simple_list_item_1, cityData);
             ListView cityListView = (ListView) findViewById(R.id.city_list);
             cityListView.setAdapter(adapter); */
+
+
             Toast.makeText(ChooseCityActivity.this,
                     "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
         }
@@ -62,9 +64,9 @@ public class ChooseCityActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-                Intent showCityIntent = new Intent(ChooseCityActivity.this, CityActivity.class);
+/*                Intent showCityIntent = new Intent(ChooseCityActivity.this, CityActivity.class);
                 showCityIntent.putExtra("number", position);
-                startActivity(showCityIntent);
+                startActivity(showCityIntent); */
             }
         });
 
@@ -139,11 +141,11 @@ public class ChooseCityActivity extends AppCompatActivity {
                             cityListView.setAdapter(adapter);
                         }
                         else { */
-                            cityData = cities.toArray(new String[0]);
-                            adapter = new CityListAdapter(cityData, this);
-                            ListView cityListView = (ListView) findViewById(R.id.city_list);
-                            cityListView.setAdapter(adapter);
-                      //  }
+                        cityData = cities.toArray(new String[0]);
+                        adapter = new CityListAdapter(cityData, this);
+                        ListView cityListView = (ListView) findViewById(R.id.city_list);
+                        cityListView.setAdapter(adapter);
+                        //  }
 
                  /*     To be delete
                         StringBuffer sb = new StringBuffer();
