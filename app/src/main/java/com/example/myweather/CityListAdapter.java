@@ -52,7 +52,7 @@ public class CityListAdapter extends BaseAdapter {
             String[] location = sp.getString(cityList[i],null).split(",");
             addCity(i,location[0],location[1]);
         }
-        for(int i = 0; i< cityList.length; i++){
+/*        for(int i = 0; i< cityList.length; i++){
             while(cityWeatherInfo.get(i)== null)
             {
                 try {
@@ -67,7 +67,7 @@ public class CityListAdapter extends BaseAdapter {
             localTimeList.add(i, content[0]);
             weatherList.add(i, content[1]);
 
-        }
+        }*/
     }
 
     private void addCity(int pos, String lat, String lng) {
