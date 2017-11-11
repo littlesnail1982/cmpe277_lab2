@@ -82,6 +82,7 @@ public class ChooseCityActivity extends AppCompatActivity {
             else
                 unitGroup.check(R.id.bt_F);
         }
+        
         unitGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {

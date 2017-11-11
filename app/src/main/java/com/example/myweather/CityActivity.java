@@ -76,6 +76,7 @@ public class CityActivity extends AppCompatActivity {
     private int number; //the position of the city
     private Coord coord; //the coordination of the city
     private String timezoneId; //the timezone id of the city
+    private String cityName;
 
 
     @Override
@@ -96,7 +97,8 @@ public class CityActivity extends AppCompatActivity {
         whetherHereView = (TextView) findViewById(R.id.whether_here);
         locationManager=(LocationManager) getSystemService(LOCATION_SERVICE);
         timeTransform=new TimeTransform();
-        number = getIntent().getIntExtra("number",-1); //the position of the targed city
+        number = getIntent().getIntExtra("number",0); //the position of the targed city
+
         getEnvironment(); //get the values in sharedPreference
         getCurrentByGPS(); //To verify the current location of the user now
         weatherTask = new WeatherTask();
@@ -304,8 +306,6 @@ public class CityActivity extends AppCompatActivity {
         }
     }
 
-
-
     /* 6: Get current weather */
     private class GetCurrentWeather extends AsyncTask<String, Void, String> {
         @Override
@@ -322,6 +322,7 @@ public class CityActivity extends AppCompatActivity {
             super.onPostExecute(s);
             try {
                 currentWeather = weatherTask.getCurrentWeatherByCoordinates(s);
+
                 while(timeZoneTaskFinished==false){
                     try{
                         Log.d("Hours Weather","Waiting for the task to get the time zone");
@@ -673,6 +674,7 @@ public class CityActivity extends AppCompatActivity {
         catch(Exception e){
             e.printStackTrace();
         }
+
 
         whetherHereView.setText(curCity);
         return curCity;
