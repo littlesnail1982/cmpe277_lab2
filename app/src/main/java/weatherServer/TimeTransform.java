@@ -32,24 +32,23 @@ public class TimeTransform {
         return dd;
     }
 
-    //the the hour in a day
     public int getHour(long timestamp, String timezone){
         Date todayDate=getDate(timestamp,timezone);
         Calendar calendar = GregorianCalendar.getInstance();
         calendar.setTime(todayDate);
         int hour=calendar.get(Calendar.HOUR_OF_DAY);
-        return hour;
+       return hour;
+
     }
 
-    /*
     public int getDay(long timestamp, String timezone){
         Date todayDate=getDate(timestamp,timezone);
         Calendar calendar = GregorianCalendar.getInstance();
         calendar.setTime(todayDate);
-        int day=calendar.get(Calendar.HOUR_OF_DAY);
-        return day;
+        int hour=calendar.get(Calendar.HOUR_OF_DAY);
+        return hour;
 
     }
-*/
+
 
 }

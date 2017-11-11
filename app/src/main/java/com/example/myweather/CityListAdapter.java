@@ -161,7 +161,8 @@ public class CityListAdapter extends BaseAdapter {
             Helper helper = new Helper();
             stream = helper.getHTTPData(url);
             GetTimeZoneTask gtzt=new GetTimeZoneTask();
-            timeZoneMap.put(params[1], gtzt.getTimeZoneOffset(stream));
+//            timeZoneMap.put(params[1], gtzt.getTimeZoneOffset(stream));
+            timeZoneMap.put(params[1], gtzt.getTimeZone(stream));
             return  null;
         }
 
@@ -190,7 +191,7 @@ public class CityListAdapter extends BaseAdapter {
                 while(timeZoneMap.get(params[1]).isEmpty()){
                     try{
                         Log.d("Hours Weather","Waiting for the task to get the time zone");
-                        Thread.sleep(50);
+                        Thread.sleep(100);
                     }catch(InterruptedException e){
                         e.printStackTrace();
                     }
@@ -198,12 +199,12 @@ public class CityListAdapter extends BaseAdapter {
 
                 //Transform the time to local time for current weather and put into Adapter
                 if(currentWeather!=null){
-                   long timestamp = Calendar.getInstance().getTimeInMillis();
-//                    long timestamp = new Date().getTime();
-//                    timestamp += (Long.valueOf(timeZoneMap.get(params[1])) * 1000);
-                    Date date = new Date(timestamp);
-                    DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT); //显示日期，时间（精确到分）
-                    String localtime = df.format(date);
+
+                    Long timestamp = Calendar.getInstance().getTimeInMillis()/1000;
+                    Date date=timeTransform.getDate(timestamp,timeZoneMap.get(params[1]));
+                    String DATE_FORMAT = "MM/dd/yyyy HH:mm";
+                    DateFormat formatter = new SimpleDateFormat(DATE_FORMAT);
+                    String localtime = formatter.format(date);
 
                     double tempInK = currentWeather.getTemperatureInK();
                     String temperature;

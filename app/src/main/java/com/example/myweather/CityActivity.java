@@ -16,6 +16,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,7 +30,9 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -61,22 +64,24 @@ public class CityActivity extends AppCompatActivity {
     SharedPreferences sp;
     WeatherTask weatherTask;
     Context context;
-    private List<HourWeather> hoursWeather;  //the weather information for the next 5days
+    private List<HourWeather> hoursWeather;
+    private GestureDetectorCompat gestureObject;
     private float x1, x2;
     static final int MIN_DISTANCE = 150;
-    private UnitConverter unitConverter = new UnitConverter();
-    private String unit;
+    private int number;
+    Coord coord;
+    UnitConverter unitConverter = new UnitConverter();
+    String unit;
     private static final int MY_PERMISSION_REQUEST_LOCATION = 1;
+    String curCityName;
     private boolean gpsStatus;
     private LocationListener locationListener = null;
     private LocationManager locationManager = null;
+    String timezoneId;
+    long timestamp;
     private boolean timeZoneTaskFinished=false; //mark whether the task to get the time zone is finished
     private TimeTransform timeTransform;
-    private int cityNumber; //how many cities users have set
-    private int number; //the position of the city
-    private Coord coord; //the coordination of the city
-    private String timezoneId; //the timezone id of the city
-    private String cityName;
+    int cityNumber;
 
 
     @Override
@@ -85,6 +90,8 @@ public class CityActivity extends AppCompatActivity {
         setContentView(R.layout.activity_city);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true); //the up button
+        //gestureObject =new GestureDetectorCompat(this, this);
+
         listView = (ListView) findViewById(R.id.day_weather_list);
         cityNameView = (TextView) findViewById(R.id.cityName);
         weatherView = (TextView) findViewById(R.id.weather);
@@ -97,10 +104,9 @@ public class CityActivity extends AppCompatActivity {
         whetherHereView = (TextView) findViewById(R.id.whether_here);
         locationManager=(LocationManager) getSystemService(LOCATION_SERVICE);
         timeTransform=new TimeTransform();
-        number = getIntent().getIntExtra("number",0); //the position of the targed city
-
+        number = getIntent().getIntExtra("number",-1); //the position of the targed city
         getEnvironment(); //get the values in sharedPreference
-        getCurrentByGPS(); //To verify the current location of the user now
+        getCurrentByGPS();
         weatherTask = new WeatherTask();
         //get the the time zone of the local city
         new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),0));
@@ -310,6 +316,8 @@ public class CityActivity extends AppCompatActivity {
         }
     }
 
+
+
     /* 6: Get current weather */
     private class GetCurrentWeather extends AsyncTask<String, Void, String> {
         @Override
@@ -326,7 +334,6 @@ public class CityActivity extends AppCompatActivity {
             super.onPostExecute(s);
             try {
                 currentWeather = weatherTask.getCurrentWeatherByCoordinates(s);
-
                 while(timeZoneTaskFinished==false){
                     try{
                         Log.d("Hours Weather","Waiting for the task to get the time zone");
@@ -407,7 +414,7 @@ public class CityActivity extends AppCompatActivity {
 
 */
 
-/* Change the position of the city */
+
     public int changeNumber(int i){
         number+=i;
         if (number<0 || number>=cityNumber) {  //when the number of the cities is out of range
@@ -416,7 +423,6 @@ public class CityActivity extends AppCompatActivity {
         return number;
     }
 
-    /*When user swipe left/right, change the city*/
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
@@ -679,11 +685,11 @@ public class CityActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-
         whetherHereView.setText(curCity);
         return curCity;
 
     }
+
 
     /*----Method to Check GPS is enable or disabled -----
     private Boolean displayGpsStatus() {
@@ -694,5 +700,7 @@ public class CityActivity extends AppCompatActivity {
     }
 */
     //Get current Location ---Finish
+
+
 
 }
