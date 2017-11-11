@@ -23,14 +23,17 @@
         <activity
             android:name=".ChooseCityActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme.NoActionBar"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".GooglePlaceActivity" />
-        <activity android:name=".DeleteCityActivity"></activity>
+        <activity android:name=".GooglePlaceActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".DeleteCityActivity"
+            android:screenOrientation="portrait"></activity>
         <activity android:name=".CityActivity"
                   android:parentActivityName=".ChooseCityActivity">
             <meta-data
