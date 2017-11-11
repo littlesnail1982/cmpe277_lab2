@@ -64,9 +64,9 @@ public class ChooseCityActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-/*                Intent showCityIntent = new Intent(ChooseCityActivity.this, CityActivity.class);
+                Intent showCityIntent = new Intent(ChooseCityActivity.this, CityActivity.class);
                 showCityIntent.putExtra("number", position);
-                startActivity(showCityIntent); */
+                startActivity(showCityIntent);
             }
         });
 
@@ -87,8 +87,11 @@ public class ChooseCityActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
                 RadioButton unitbtn = (RadioButton) findViewById(checkedId);
-                //Doing temperature exchange work
                 sp.edit().putString("unit", unitbtn.getText().toString()).apply();
+                //Doing temperature exchange work
+                adapter = new CityListAdapter(cityData, ChooseCityActivity.this);
+                cityListView.setAdapter(adapter);
+
             }
         });
 

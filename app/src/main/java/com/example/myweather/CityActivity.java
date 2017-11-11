@@ -156,6 +156,8 @@ public class CityActivity extends AppCompatActivity {
     private class GetTimeZone extends AsyncTask<String, Void, String>{
         @Override
         protected String doInBackground(String... params) {
+            if(android.os.Debug.isDebuggerConnected())
+                android.os.Debug.waitForDebugger();
             String stream = null;
             String url = params[0];
             Helper helper = new Helper();
@@ -165,6 +167,8 @@ public class CityActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String s) {
+            if(android.os.Debug.isDebuggerConnected())
+                android.os.Debug.waitForDebugger();
             super.onPostExecute(s);
             GetTimeZoneTask gtzt=new GetTimeZoneTask();
             timezoneId=gtzt.getTimeZone(s);
