@@ -1,9 +1,15 @@
 package com.example.myweather;
 
+import android.*;
+import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
@@ -25,6 +31,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBuffer;
 import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
@@ -33,6 +40,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class GooglePlaceActivity extends AppCompatActivity
@@ -69,9 +78,21 @@ public class GooglePlaceActivity extends AppCompatActivity
 
     private String choosePlaceLatLng;
 
+    private LocationManager locationManager;
+    private LocationListener locationListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+
+            }
+
+        };
 
         // Construct a GoogleApiClient for the {@link Places#GEO_DATA_API} using AutoManage
         // functionality, which automatically sets up the API client to handle Activity lifecycle
@@ -143,12 +164,15 @@ public class GooglePlaceActivity extends AppCompatActivity
         public void onClick(View view) {
             if (ContextCompat.checkSelfPermission(GooglePlaceActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(GooglePlaceActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                ActivityCompat.requestPermissions(GooglePlaceActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET},
                         PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
                 return;
-
             }
-            PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
+            else{
+                getCurrentLocation();
+            }
+/*            PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
                     .getCurrentPlace(mGoogleApiClient, null);
             if (result == null) {
                 Toast.makeText(GooglePlaceActivity.this,
@@ -177,9 +201,38 @@ public class GooglePlaceActivity extends AppCompatActivity
                         likelyPlaces.release();
                     }
                 });
-            }
+            }*/
         }
     };
+
+    public void getCurrentLocation(){
+        if (ContextCompat.checkSelfPermission(GooglePlaceActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(GooglePlaceActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET},
+                    PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
+            return;
+        }
+        Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        currentCity(location.getLatitude(),location.getLongitude());
+    }
+
+    public void currentCity(double lat, double lon){
+        Geocoder geocoder = new Geocoder(GooglePlaceActivity.this, Locale.getDefault());
+        List<Address> addressList;
+        try{
+            addressList = geocoder.getFromLocation(lat, lon, 1);
+            if(addressList.size() > 0){
+                choosePlaceName = addressList.get(0).getLocality();
+                choosePlaceLatLng = Double.toString(lat) + "," + Double.toString(lon);
+                mPlaceDetailsText.setText(choosePlaceName);
+                mPlaceDetailsAttribution.setText(choosePlaceLatLng);
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Listener that handles selections from suggestions from the AutoCompleteTextView that
@@ -233,8 +286,9 @@ public class GooglePlaceActivity extends AppCompatActivity
             final Place place = places.get(0);
 
             
-            choosePlaceLatLng = Double.toString(place.getLatLng().latitude) + "," + Double.toString(place.getLatLng().longitude);
-            choosePlaceName = place.getAddress().toString();
+/*            choosePlaceLatLng = Double.toString(place.getLatLng().latitude) + "," + Double.toString(place.getLatLng().longitude);
+            choosePlaceName = place.getAddress().toString(); */
+            currentCity(place.getLatLng().latitude, place.getLatLng().longitude);
 
             // Format details of the place for display and show it in a TextView.
          /*   mPlaceDetailsText.setText(formatPlaceDetails(getResources(), place.getName(),
@@ -299,35 +353,7 @@ public class GooglePlaceActivity extends AppCompatActivity
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
-                            .getCurrentPlace(mGoogleApiClient, null);
-                    if (result == null) {
-                        Toast.makeText(GooglePlaceActivity.this,
-                                "Couldn't get current location result ", Toast.LENGTH_SHORT).show();
-                    } else {
-
-                        result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
-                            @Override
-                            public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
-                                if (!likelyPlaces.getStatus().isSuccess()) {
-                                    // Request did not complete successfully
-                                    Log.e(TAG, "Place query did not complete. Error: " + likelyPlaces.getStatus().toString());
-                                    likelyPlaces.release();
-                                    return;
-                                }
-                                Place place = likelyPlaces.get(0).getPlace();
-                                String placeName = String.format("%s", place.getName());
-                                String placeAddress = String.format("%s", place.getAddress());
-                                String[] detail = placeAddress.split(",");
-                                choosePlaceName = detail[1];
-                                choosePlaceLatLng = Double.toString(place.getLatLng().latitude) + "," + Double.toString(place.getLatLng().longitude);
-                                mPlaceDetailsText.setText(placeName);
-                                mPlaceDetailsAttribution.setText(placeAddress);
-                                likelyPlaces.release();
-                            }
-                        });
-                    }
-
+                    getCurrentLocation();
                 } else {
 
                     Toast.makeText(GooglePlaceActivity.this,

@@ -161,20 +161,9 @@ public class CityListAdapter extends BaseAdapter {
             Helper helper = new Helper();
             stream = helper.getHTTPData(url);
             GetTimeZoneTask gtzt=new GetTimeZoneTask();
-//            timeZoneMap.put(params[1], gtzt.getTimeZoneOffset(stream));
             timeZoneMap.put(params[1], gtzt.getTimeZone(stream));
             return  null;
         }
-
-/*        @Override
-        protected void onPostExecute(String s) {
-            if(android.os.Debug.isDebuggerConnected())
-                android.os.Debug.waitForDebugger();
-//            String[] temp = s.split("`");
-            GetTimeZoneTask gtzt=new GetTimeZoneTask();
-//            timeZoneMap.put(temp[0],gtzt.getTimeZone(temp[1]));
-            timeZoneMap.put("0", gtzt.getTimeZone(s));
-        } */
     }
 
     private class GetCurrentWeather extends AsyncTask<String, Void, Void> {
@@ -226,48 +215,5 @@ public class CityListAdapter extends BaseAdapter {
             }
             return null;
         }
-
-/*        @Override
-        protected void onPostExecute(String s) {
-            if(android.os.Debug.isDebuggerConnected())
-                android.os.Debug.waitForDebugger();
-            try {
-                String[] temp = s.split("`");
-                CurrentWeather currentWeather = weatherTask.getCurrentWeatherByCoordinates(temp[1]);
-                while(timeZoneMap.get(temp[0]).isEmpty()){
-                    try{
-                        Log.d("Hours Weather","Waiting for the task to get the time zone");
-                        Thread.sleep(50);
-                    }catch(InterruptedException e){
-                        e.printStackTrace();
-                    }
-                }
-
-                //Transform the time to local time for current weather and put into Adapter
-                if(currentWeather!=null){
-                    long timestamp = Calendar.getInstance().getTimeInMillis()/1000;
-                    Date date=timeTransform.getDate(timestamp,timeZoneMap.get(temp[0]));
-                    DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.MEDIUM); //显示日期，时间（精确到分）
-                    String localtime = df.format(date);
-
-                    double tempInK = currentWeather.getTemperatureInK();
-                    String temperature;
-                    if (unit.equals("C")) {
-                        temperature = Integer.toString((int)unitConverter.Kelvin2Celsius(tempInK));
-                    } else {
-                        temperature = Integer.toString((int) unitConverter.Kelvin2Farenheit(tempInK));
-                    }
-                    int pos = Integer.valueOf(temp[0]);
-                    localTimeList.add(pos, localtime);
-                    weatherList.add(pos, temperature);
-                    cityWeatherInfo.put(pos, true);
-                }
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }*/
     }
 }
