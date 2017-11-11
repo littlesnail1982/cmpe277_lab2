@@ -19,4 +19,15 @@ public class GetTimeZoneTask {
         }
         return timeZoneId;
     }
+
+    public String getTimeZoneOffset(String stream){
+        String timeZoneOffset = null;
+        try {
+            JSONObject json = new JSONObject(stream);
+            timeZoneOffset=json.getString("rawOffset");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return timeZoneOffset;
+    }
 }
