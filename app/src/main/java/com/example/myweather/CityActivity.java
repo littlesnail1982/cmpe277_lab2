@@ -1,5 +1,7 @@
 package com.example.myweather;
 
+import android.*;
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,12 +13,14 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -26,16 +30,17 @@ import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import org.json.JSONException;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
 import weatherServer.Coord;
 import weatherServer.CurrentWeather;
 import weatherServer.DayWeather;
@@ -64,24 +69,22 @@ public class CityActivity extends AppCompatActivity {
     SharedPreferences sp;
     WeatherTask weatherTask;
     Context context;
-    private List<HourWeather> hoursWeather;
-    private GestureDetectorCompat gestureObject;
+    private List<HourWeather> hoursWeather;  //the weather information for the next 5days
     private float x1, x2;
     static final int MIN_DISTANCE = 150;
-    private int number;
-    Coord coord;
-    UnitConverter unitConverter = new UnitConverter();
-    String unit;
+    private UnitConverter unitConverter = new UnitConverter();
+    private String unit;
     private static final int MY_PERMISSION_REQUEST_LOCATION = 1;
-    String curCityName;
     private boolean gpsStatus;
     private LocationListener locationListener = null;
     private LocationManager locationManager = null;
-    String timezoneId;
-    long timestamp;
-    private boolean timeZoneTaskFinished=false; //mark whether the task to get the time zone is finished
+    private boolean timeZoneTaskFinished = false; //mark whether the task to get the time zone is finished
     private TimeTransform timeTransform;
-    int cityNumber;
+    private int cityNumber; //how many cities users have set
+    private int number; //the position of the city
+    private Coord coord; //the coordination of the city
+    private String timezoneId; //the timezone id of the city
+    private String cityName;
 
 
     @Override
@@ -90,8 +93,6 @@ public class CityActivity extends AppCompatActivity {
         setContentView(R.layout.activity_city);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true); //the up button
-        //gestureObject =new GestureDetectorCompat(this, this);
-
         listView = (ListView) findViewById(R.id.day_weather_list);
         cityNameView = (TextView) findViewById(R.id.cityName);
         weatherView = (TextView) findViewById(R.id.weather);
@@ -102,18 +103,106 @@ public class CityActivity extends AppCompatActivity {
         todayMaxView = (TextView) findViewById(R.id.today_max);
         context = this;
         whetherHereView = (TextView) findViewById(R.id.whether_here);
-        locationManager=(LocationManager) getSystemService(LOCATION_SERVICE);
-        timeTransform=new TimeTransform();
-        number = getIntent().getIntExtra("number",-1); //the position of the targed city
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+                //Intent intent=new Intent(Settings.ACTION_LOCALE_SETTINGS);
+                //intent.putExtra("number", number);
+                //startActivity(intent);
+            }
+        };
+
+        number = getIntent().getIntExtra("number", 0); //the position of the targed city
         getEnvironment(); //get the values in sharedPreference
-        getCurrentByGPS();
+        getLocation();
+       // locationManager.requestLocationUpdates("gps", 0, 0, locationListener); //every 5000millison，500m change will be detected
+
+        timeTransform = new TimeTransform();
+
+
+        //getCurrentByGPS(); //To verify the current location of the user now
+        //coord=new Coord(5,10);
+
         weatherTask = new WeatherTask();
         //get the the time zone of the local city
-        new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),0));
+        new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(), coord.getLon(), 0));
         //Get hour weather
         new GetHoursWeather().execute(WeatherToken.forcustWeatherApiRequest(coord.getLat(), coord.getLon()));
         //set the current weather
         new GetCurrentWeather().execute(WeatherToken.currentWeatherApiRequest(coord.getLat(), coord.getLon()));
+    }
+
+
+    public void getLocation(){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.INTERNET}, MY_PERMISSION_REQUEST_LOCATION);
+                return;
+            }else{
+                getCurrentLocation();
+            }
+        }else{
+            getCurrentLocation();
+        }
+
+    }
+
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSION_REQUEST_LOCATION: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                   // Toast.makeText(CityActivity.this, "PERMISSION granted", Toast.LENGTH_SHORT).show();
+                    /*
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        getCurrentLocation();
+                    }*/
+                    getLocation();
+                }
+                return;
+            }
+        }
+        //super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+
+    /*
+    For Gps get the current location
+     */
+
+    //@RequiresApi(api = Build.VERSION_CODES.M)
+    public void getCurrentLocation() {
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.M) {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.INTERNET}, MY_PERMISSION_REQUEST_LOCATION);
+                return;
+            }
+        }
+        Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        try {
+            currentCity(location.getLatitude(), location.getLongitude());
+           // Toast.makeText(CityActivity.this, "Found Location" + currentCity(location.getLatitude(), location.getLongitude()), Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(CityActivity.this, "GPS NOT FOUND", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /*1: get the coord of the desired unit*/
@@ -136,6 +225,7 @@ public class CityActivity extends AppCompatActivity {
                 String[] cityData = cities.toArray(new String[0]);
                 cityNumber=cityData.length;
                 if (number < cityData.length && number>=0) { //the unit Number
+                    cityName=cityData[number];
                     String coordStr = sp.getString(cityData[number], null);
                     coordArr = coordStr.split(",");
                 }
@@ -155,6 +245,7 @@ public class CityActivity extends AppCompatActivity {
             Log.d("SharedPreference","Missed Date in SharedPreference");
         }
     }
+
 
 
 
@@ -265,6 +356,7 @@ public class CityActivity extends AppCompatActivity {
             timeView.setText("" + hoursWeather.get(i).getHour());
             weatherView.setText(hoursWeather.get(i).getWeather());
             double temperature = hoursWeather.get(i).getTempInK();
+            unit="C";
             if (unit.equals("C")) {
                 temperatureView.setText("" + (int) unitConverter.Kelvin2Celsius(temperature) + (char) 0x00B0); ////Unit of Temper is + (char) 0x00B0
             } else {
@@ -298,8 +390,8 @@ public class CityActivity extends AppCompatActivity {
             convertView = getLayoutInflater().inflate(R.layout.dayweatherlistlayout, null);
             TextView day = (TextView) convertView.findViewById(R.id.day);
             TextView weather = (TextView) convertView.findViewById(R.id.weather);
-            TextView minTemp = (TextView) convertView.findViewById(R.id.maxTemp);
-            TextView maxTemp = (TextView) convertView.findViewById(R.id.minTemp);
+            TextView minTemp = (TextView) convertView.findViewById(R.id.minTemp);
+            TextView maxTemp = (TextView) convertView.findViewById(R.id.maxTemp);
 
             day.setText(daysWeather.get(i).getDateofWeek());
             weather.setText(daysWeather.get(i).getWeather());
@@ -315,8 +407,6 @@ public class CityActivity extends AppCompatActivity {
             return convertView;
         }
     }
-
-
 
     /* 6: Get current weather */
     private class GetCurrentWeather extends AsyncTask<String, Void, String> {
@@ -350,11 +440,12 @@ public class CityActivity extends AppCompatActivity {
                     DateFormat format=new SimpleDateFormat("EEEE MMM d");
                     todayDateView.setText(format.format(date));
                     weatherView.setText(currentWeather.getWeather());
-                    cityNameView.setText(currentWeather.getCityName());
+                    cityNameView.setText(cityName);
 
                     double tempInK = currentWeather.getTemperatureInK();
                     double minTempInK = currentWeather.getMin_Temperature();
                     double maxTempInk = currentWeather.getMax_Temperature();
+
                     if (unit.equals("C")) {
                         temperatureView.setText("" + (int) unitConverter.Kelvin2Celsius(tempInK) + (char) 0x00B0);
                         todayMinView.setText("" + (int) unitConverter.Kelvin2Celsius(minTempInK) + (char) 0x00B0);
@@ -414,7 +505,7 @@ public class CityActivity extends AppCompatActivity {
 
 */
 
-
+/* Change the position of the city */
     public int changeNumber(int i){
         number+=i;
         if (number<0 || number>=cityNumber) {  //when the number of the cities is out of range
@@ -423,6 +514,7 @@ public class CityActivity extends AppCompatActivity {
         return number;
     }
 
+    /*When user swipe left/right, change the city*/
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
@@ -450,7 +542,8 @@ public class CityActivity extends AppCompatActivity {
     public void changeCity(){
         getEnvironment(); //get the values in sharedPreference
         //getCurrent();//Get the city name of the current location
-        getCurrentByGPS();
+        //getCurrentByGPS();
+        getLocation();
         weatherTask = new WeatherTask();
         //get the the time zone of the local city
         new GetTimeZone().execute(TimeZoneToken.currentTimeZonerApiRequest(coord.getLat(),coord.getLon(),0));
@@ -554,6 +647,7 @@ public class CityActivity extends AppCompatActivity {
 */
 
     //Get current Location----Start
+    /*
     public void getCurrent() {
         if (ContextCompat.checkSelfPermission(CityActivity.this,
                 android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -577,14 +671,12 @@ public class CityActivity extends AppCompatActivity {
             }
         }
     }
-
+*/
 
     public void getCurrentByGPS() {
         gpsStatus = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (gpsStatus) {
-            Toast.makeText(CityActivity.this, "GPS is open", Toast.LENGTH_SHORT).show();
-            //locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            //locationManager=(LocationManager) getSystemService(LOCATION_SERVICE);
+            //Toast.makeText(CityActivity.this, "GPS is open", Toast.LENGTH_SHORT).show();
             locationListener = new LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) { }
@@ -596,31 +688,43 @@ public class CityActivity extends AppCompatActivity {
                 public void onProviderDisabled(String provider) { }
             };
 
-
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                     && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){
                     requestPermissions(new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION,
                             android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.INTERNET}, MY_PERMISSION_REQUEST_LOCATION);
+
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
+                    Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    try {
+                        currentCity(location.getLatitude(), location.getLongitude());
+                        //Toast.makeText(CityActivity.this, "Found Location" + currentCity(location.getLatitude(), location.getLongitude()), Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(CityActivity.this, "GPS NOT FOUND", Toast.LENGTH_SHORT).show();
+                    }
                 }
-                Toast.makeText(CityActivity.this, "GPS is not permitd", Toast.LENGTH_SHORT).show();
+                else{
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
+                    Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    try {
+                        currentCity(location.getLatitude(), location.getLongitude());
+                        //Toast.makeText(CityActivity.this, "Found Location" + currentCity(location.getLatitude(), location.getLongitude()), Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(CityActivity.this, "GPS NOT FOUND", Toast.LENGTH_SHORT).show();
+                    }
+                }
+             //   Toast.makeText(CityActivity.this, "GPS is not permitd", Toast.LENGTH_SHORT).show();
             }
-            Toast.makeText(CityActivity.this, "GPS is permited", Toast.LENGTH_SHORT).show();
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
-            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            try {
-                Toast.makeText(CityActivity.this, "Found Location" + currentCity(location.getLatitude(), location.getLongitude()), Toast.LENGTH_SHORT).show();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(CityActivity.this, "GPS NOT FOUND", Toast.LENGTH_SHORT).show();
-            }
+           // Toast.makeText(CityActivity.this, "GPS is permited", Toast.LENGTH_SHORT).show();
         }
         else {
             Toast.makeText(CityActivity.this, "GPS is off", Toast.LENGTH_SHORT).show();
         }
     }
 
-
+/*
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
@@ -644,34 +748,9 @@ public class CityActivity extends AppCompatActivity {
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
+*/
 
 
-    /*
-        @Override
-        public void onRequestPermissionsResult(int requestCode,  String[] permissions,  int[] grantResults) {
-            switch(requestCode){
-                case MY_PERMISSION_REQUEST_LOCATION:{
-                    if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
-                        if(ContextCompat.checkSelfPermission(CityActivity.this,
-                                Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED){
-                            LocationManager locationManager=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
-                            Location location=locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                            try{
-                                Toast.makeText(CityActivity.this,"Found Location"+currentCity(location.getLatitude(),location.getLongitude()),Toast.LENGTH_SHORT).show();
-                            }catch (Exception e){
-                                e.printStackTrace();
-                                Toast.makeText(CityActivity.this,"NOT FOUND",Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    }
-                    else{
-                        Toast.makeText(CityActivity.this,"NO PERMISSION granted",Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    */
     //get current city name using geocode according to the Coordinates
     public String currentCity(double lat, double lon){
         String curCity="";
@@ -684,23 +763,15 @@ public class CityActivity extends AppCompatActivity {
         catch(Exception e){
             e.printStackTrace();
         }
-
-        whetherHereView.setText(curCity);
+        if(cityName.equals(curCity)){
+            whetherHereView.setText("You are here now");
+            //whetherHereView.setText(curCity);
+        }else{
+            whetherHereView.setText("");
+        }
         return curCity;
-
     }
 
-
-    /*----Method to Check GPS is enable or disabled -----
-    private Boolean displayGpsStatus() {
-        ContentResolver contentResolver = getBaseContext().getContentResolver();
-        boolean gpsStatus = Settings.Secure.isLocationProviderEnabled(contentResolver, LocationManager.GPS_PROVIDER);
-        if (gpsStatus) {return true;}
-        else {return false;}
-    }
-*/
     //Get current Location ---Finish
-
-
 
 }
