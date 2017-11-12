@@ -15,7 +15,6 @@
         android:layout_centerHorizontal="true"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
-        android:text="TextView"
         android:textAlignment="center"
         android:textSize="24sp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -28,7 +27,6 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_below="@+id/cityName"
-        android:text="TextView"
         android:textAlignment="center"
         android:textSize="20sp" />
 
@@ -38,7 +36,6 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/weather"
         android:layout_centerHorizontal="true"
-        android:text="TextView"
         android:textAlignment="center"
         android:textSize="48sp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -65,7 +62,6 @@
             android:layout_alignParentTop="true"
             android:layout_marginStart="5dp"
             android:layout_weight="3"
-            android:text="TextView"
             android:textAlignment="viewStart"
             android:textSize="16sp" />
 
@@ -77,7 +73,6 @@
             android:layout_alignTop="@+id/day"
             android:layout_toEndOf="@+id/day"
             android:layout_weight="3"
-            android:text="TextView"
             android:textAlignment="viewStart"
             android:textSize="16sp" />
 
@@ -89,7 +84,6 @@
             android:layout_alignBottom="@+id/weather"
             android:layout_toStartOf="@+id/minTemp"
             android:layout_weight="1"
-            android:text="TextView"
             android:textAlignment="viewStart"
             android:textSize="16sp" />
 
@@ -102,7 +96,6 @@
             android:layout_alignParentEnd="true"
             android:layout_marginEnd="5dp"
             android:layout_weight="1"
-            android:text="TextView"
             android:textSize="16sp" />
     </LinearLayout>
 
@@ -144,13 +137,12 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
 
-<TextView
-    android:id="@+id/whether_here"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@+id/weather"
-    android:layout_alignEnd="@+id/cityName"
-    android:text="TextView" />
+    <TextView
+        android:id="@+id/whether_here"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/weather"
+        android:layout_alignEnd="@+id/cityName" />
 
 
 </RelativeLayout>

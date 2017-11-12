@@ -17,7 +17,6 @@
         android:layout_alignParentTop="true"
         android:layout_marginStart="5dp"
         android:layout_weight="3"
-        android:text="TextView"
         android:textAlignment="viewStart"
         android:textSize="16sp" />
 
@@ -29,7 +28,6 @@
         android:layout_alignTop="@+id/day"
         android:layout_toEndOf="@+id/day"
         android:layout_weight="3"
-        android:text="TextView"
         android:textAlignment="viewStart"
         android:textSize="16sp" />
 
@@ -41,7 +39,6 @@
         android:layout_alignBottom="@+id/weather"
         android:layout_toStartOf="@+id/minTemp"
         android:layout_weight="1"
-        android:text="TextView"
         android:textAlignment="viewStart"
         android:textSize="16sp" />
 
@@ -54,7 +51,6 @@
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="5dp"
         android:layout_weight="1"
-        android:text="TextView"
         android:textSize="16sp" />
 
 </LinearLayout>

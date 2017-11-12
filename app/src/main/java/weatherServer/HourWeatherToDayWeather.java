@@ -35,7 +35,7 @@ public class HourWeatherToDayWeather {
         String weather=null;
         int hourOfDate=0;
 
-        //int j=0;
+
         for(int i=0;i<hourWeatherList.size();i++){
             String temp=sdf.format(calendar.getTime()); //
             Date tempDate=hourWeatherList.get(i).getDate();
