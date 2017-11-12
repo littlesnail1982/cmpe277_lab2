@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -31,7 +32,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.location.LocationListener;
+import android.location.LocationListener;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBuffer;
 import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
@@ -78,8 +79,8 @@ public class GooglePlaceActivity extends AppCompatActivity
 
     private String choosePlaceLatLng;
 
-    private LocationManager locationManager;
-    private LocationListener locationListener;
+    private LocationListener locationListener = null;
+    private LocationManager locationManager = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,9 +90,19 @@ public class GooglePlaceActivity extends AppCompatActivity
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-
             }
 
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+            }
         };
 
         // Construct a GoogleApiClient for the {@link Places#GEO_DATA_API} using AutoManage
@@ -213,6 +224,7 @@ public class GooglePlaceActivity extends AppCompatActivity
                     PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
             return;
         }
+        locationManager.requestLocationUpdates("gps", 5000, 500, locationListener); //every 5000millison，500m change will be detected
         Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         currentCity(location.getLatitude(),location.getLongitude());
     }
@@ -274,6 +286,7 @@ public class GooglePlaceActivity extends AppCompatActivity
      */
     private ResultCallback<PlaceBuffer> mUpdatePlaceDetailsCallback
             = new ResultCallback<PlaceBuffer>() {
+        @RequiresApi(api = Build.VERSION_CODES.N)
         @Override
         public void onResult(PlaceBuffer places) {
             if (!places.getStatus().isSuccess()) {
