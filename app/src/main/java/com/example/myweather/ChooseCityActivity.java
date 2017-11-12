@@ -71,10 +71,10 @@ public class ChooseCityActivity extends AppCompatActivity {
             adapter = new CityListAdapter(cityData, this);
             cityListView.setAdapter(adapter);
         }
-        else{
+/*        else{
             Toast.makeText(ChooseCityActivity.this,
                     "No cities in SharedPreferences ", Toast.LENGTH_SHORT).show();
-        }
+        } */
 
 
         cityListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
