@@ -321,7 +321,7 @@ public class CityActivity extends AppCompatActivity {
                 HourWeatherAdapter hourWeatherAdapter=new HourWeatherAdapter();
                 gridView.setAdapter(hourWeatherAdapter);  //show the hour weather
                 hourWeatherAdapter.notifyDataSetChanged();
-                daysWeather=new HourWeatherToDayWeather().GetDayWeather(hoursWeather);
+                daysWeather=new HourWeatherToDayWeather().GetDayWeather(hoursWeather,timezoneId);
                 DayWeatherAdapter dayWeatherAdapter=new DayWeatherAdapter();
                 listView.setAdapter(dayWeatherAdapter);  //show the day weather
                 dayWeatherAdapter.notifyDataSetChanged();
@@ -377,7 +377,7 @@ public class CityActivity extends AppCompatActivity {
         @Override
         //public int getCount() {return days.length;}
         public int getCount() {
-            return daysWeather.size();
+            return daysWeather.size()>4?4:daysWeather.size();
         }
 
         @Override

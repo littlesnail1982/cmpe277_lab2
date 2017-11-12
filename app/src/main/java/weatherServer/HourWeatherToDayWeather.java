@@ -18,11 +18,15 @@ public class HourWeatherToDayWeather {
     SimpleDateFormat weekDayFormat = new SimpleDateFormat("EEEE");
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    TimeTransform timeTransform=new TimeTransform();
 
-    public List<DayWeather> GetDayWeather(List<HourWeather> hourWeatherList){
+    public List<DayWeather> GetDayWeather(List<HourWeather> hourWeatherList,String timezoneId){
         List<DayWeather> result=new ArrayList<>();
         if(hourWeatherList==null || hourWeatherList.size()==0) return result;
-        Date date=hourWeatherList.get(0).getDate();
+        //Get currentTime
+        Long timestamp = Calendar.getInstance().getTimeInMillis()/1000;
+        Date date=timeTransform.getDate(timestamp,timezoneId);
+        //Date date=hourWeatherList.get(0).getDate();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.add(Calendar.DAY_OF_YEAR, 1); //tomorrow
